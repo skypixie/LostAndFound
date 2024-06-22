@@ -40,6 +40,7 @@ void AEnemyGroup::SpawnEnemies(int32 NumEnemies)
 	for (int i = 0; i < NumEnemies; ++i)
 	{
 		FVector SpawnLocation = FMath::RandPointInBox(SpawnBox->GetNavigationBounds());
+		SpawnLocation.Z = 0.0f;
 		FRotator SpawnRotation = FRotator(0, 0, 0);
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -47,7 +48,6 @@ void AEnemyGroup::SpawnEnemies(int32 NumEnemies)
 		AEnemy* SpawnedEnemy = Cast<AEnemy>(GetWorld()->SpawnActor(EnemyClass, &SpawnLocation, &SpawnRotation, SpawnParameters));
 		if (SpawnedEnemy)
 		{
-			SpawnedEnemy->OwningGroup = this;
 			SpawnedEnemy->Player = Player;
 			Enemies.Add(SpawnedEnemy);
 		}
@@ -61,11 +61,19 @@ void AEnemyGroup::BoxBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-
-	for (auto Enemy : Enemies)
+	if (OtherActor == Player)
 	{
-		Enemy->bIsSeeingPlayer = true;
-		Enemy->DoAction();
+		// spawn area should not notify enemies more than 1 time
+		if (!bFirstInteraction) return;
+
+		for (auto Enemy : Enemies)
+		{
+			if (!Enemy->bIsSeeingPlayer)
+			{
+				Enemy->bIsSeeingPlayer = true;
+				Enemy->DoAction("Box notify");
+			}
+		}
+		bFirstInteraction = false;
 	}
 }
-

@@ -9,6 +9,7 @@
 class AEnemyGroup;
 class APaperHero;
 
+
 /**
  * 
  */
@@ -21,11 +22,14 @@ public:
 
 	AEnemy();
 
-	UPROPERTY()
-	AEnemyGroup* OwningGroup = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USphereComponent* PlayerDetection = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bIsSeeingPlayer = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bIsPlayerNear = false;
 
 	UPROPERTY(VisibleAnywhere)
 	bool bCanHitPlayer = false;
@@ -38,7 +42,7 @@ public:
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void DoAction();
+	void DoAction(FString str);
 
 	UFUNCTION(BlueprintCallable)
 	void Attack();
@@ -55,5 +59,19 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PlayQuestionAnim();
+
+	UFUNCTION()
+	void SphereBeginOverlap(UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void SphereEndOverlap(class UPrimitiveComponent* OverlappedComp,
+		class AActor* OtherActor,
+		class UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
 	
 };
