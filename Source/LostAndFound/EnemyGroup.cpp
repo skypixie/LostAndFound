@@ -3,6 +3,7 @@
 
 #include "EnemyGroup.h"
 
+#include "PaperEnemy.h"
 #include "Enemy.h"
 #include "PaperHero.h"
 
@@ -45,7 +46,7 @@ void AEnemyGroup::SpawnEnemies(int32 NumEnemies)
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		AEnemy* SpawnedEnemy = Cast<AEnemy>(GetWorld()->SpawnActor(EnemyClass, &SpawnLocation, &SpawnRotation, SpawnParameters));
+		APaperEnemy* SpawnedEnemy = Cast<APaperEnemy>(GetWorld()->SpawnActor(EnemyClass, &SpawnLocation, &SpawnRotation, SpawnParameters));
 		if (SpawnedEnemy)
 		{
 			SpawnedEnemy->Player = Player;
@@ -63,14 +64,13 @@ void AEnemyGroup::BoxBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 {
 	if (OtherActor == Player)
 	{
-		// spawn area should not notify enemies more than 1 time
+		// spawn area should work only 1 time
 		if (!bFirstInteraction) return;
 
 		for (auto Enemy : Enemies)
 		{
-			if (!Enemy->bIsSeeingPlayer)
+			if (!Enemy->bIsBusy)
 			{
-				Enemy->bIsSeeingPlayer = true;
 				Enemy->DoAction("Box notify");
 			}
 		}

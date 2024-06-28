@@ -10,6 +10,8 @@ class UInputMappingContext;
 class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
+class UPaperFlipbookComponent;
+class UBoxComponent;
 
 /**
  * 
@@ -26,6 +28,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	USpringArmComponent* SpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	UPaperFlipbookComponent* DamageFB;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	UBoxComponent* AttackCollision;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
 	UInputMappingContext* InputMapping;
@@ -57,6 +65,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float HitTimer = 0.0f;
 
+private:
+	UPROPERTY()
+	float Health = 100.f;
+
+	UPROPERTY()
+	float Damage = 15.f;
+
 public:
 	APaperHero();
 
@@ -78,6 +93,30 @@ public:
 	void HitTick(float DeltaTime);
 
 	UFUNCTION()
+	void OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnAttackCollisionHit(UPrimitiveComponent* HitComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit);
+
+	UFUNCTION()
 	void Interact(const FInputActionValue& Value);
+
+	UFUNCTION(BlueprintCallable)
+	void GetHit(AActor* OtherActor, float ReceivedDamage);
+
+	UFUNCTION(BlueprintCallable)
+	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
+
+	UFUNCTION(BlueprintCallable)
+	void Die();
 	
 };

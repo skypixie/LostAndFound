@@ -8,7 +8,7 @@
 #include "EnemyGroup.generated.h"
 
 class UBoxComponent;
-class AEnemy;
+class APaperEnemy;
 class APaperHero;
 
 UCLASS()
@@ -30,10 +30,10 @@ public:
 	int CurNumEnemies = StartNumEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<AEnemy*> Enemies;
+	TArray<APaperEnemy*> Enemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings", Meta = (ExposeOnSpawn = true))
-	TSubclassOf<AEnemy> EnemyClass;
+	TSubclassOf<APaperEnemy> EnemyClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	APaperHero* Player = nullptr;
