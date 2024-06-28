@@ -7,6 +7,7 @@
 #include "EnemyGroup.h"
 #include "PaperHero.h"
 
+#include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -14,8 +15,9 @@
 
 APaperEnemy::APaperEnemy()
 {
-	GetSprite()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	GetSprite()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	DamageFB = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("Damage FB"));
+	DamageFB->SetupAttachment(GetSprite());
+	DamageFB->SetLooping(false);
 
 	PlayerDetection = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerDetection"));
 	PlayerDetection->SetupAttachment(RootComponent);
@@ -26,7 +28,7 @@ APaperEnemy::APaperEnemy()
 	PlayerDetection->OnComponentEndOverlap.AddDynamic(this, &APaperEnemy::SphereEndOverlap);
 }
 
-void APaperEnemy::DoAction(FString str)
+void APaperEnemy::DoAction()
 {
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, str);
 
@@ -61,7 +63,7 @@ void APaperEnemy::AttackBegin()
 
 	/*
 	[+] проиграть анимацию на враге
-	[] проиграть эффект атаки на игроке
+	[+] проиграть эффект атаки на игроке
 	[+] получение урона игроком
 	*/
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Start Hit");
@@ -76,6 +78,7 @@ void APaperEnemy::AttackEnd()
 	GetSprite()->SetSpriteColor(NormalColor);
 
 	GetWorld()->GetTimerManager().ClearTimer(HitTimerHandle);
+	DoAction();
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stop Hit");
 }
 
@@ -98,7 +101,7 @@ void APaperEnemy::SphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, A
 	if (!bIsBusy && OtherActor == Player)
 	{
 		bIsPlayerNear = true;
-		DoAction("Sphere Begin Overlap");
+		DoAction();
 	}
 }
 
@@ -108,29 +111,45 @@ void APaperEnemy::SphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 	{
 		// UE_LOG(LogTemp, Warning, TEXT("%p %p"), OtherActor, Player);
 		bIsPlayerNear = false;
-		DoAction("Sphere End Overlap");
+		DoAction();
 	}
 }
 
-void APaperEnemy::GetHit(AActor* OtherActor, float ReceivedDamage)
+void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 {
-	Destroy();
-	/*if (Health - ReceivedDamage <= 0)
+	if (Health - ReceivedDamage <= 0.f)
 	{
 		Die();
 	}
 	else
 	{
 		Health -= ReceivedDamage;
-	}*/
+		PlayDamageEffect(Hero->HitEffect);
+	}
 }
 
 void APaperEnemy::Die()
 {
+	Destroy();
 }
 
-UPaperFlipbook* APaperEnemy::GetHitEffect()
+void APaperEnemy::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 {
-	return HitEffect;
+	float AnimLengthSeconds = NewDamageFB->GetNumFrames() / NewDamageFB->GetFramesPerSecond();
+	GetWorld()->GetTimerManager().SetTimer(DamageEffectTimer, this,
+		&APaperEnemy::PlayDamageEffectEnd, AnimLengthSeconds, false);
+	
+	DamageFB->SetVisibility(true);
+	DamageFB->SetFlipbook(NewDamageFB);
+	DamageFB->PlayFromStart();
 }
 
+void APaperEnemy::PlayDamageEffectEnd()
+{
+	GetWorld()->GetTimerManager().ClearTimer(DamageEffectTimer);
+	if (IsValid(DamageFB))
+	{
+		DamageFB->Stop();
+		DamageFB->SetVisibility(false);
+	}
+}

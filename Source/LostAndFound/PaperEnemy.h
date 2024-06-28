@@ -25,6 +25,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USphereComponent* PlayerDetection = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	UPaperFlipbookComponent* DamageFB;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bIsBusy = false;
 
@@ -33,9 +36,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	bool bIsHitting = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
-	FTimerHandle HitTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	APaperHero* Player = nullptr;
@@ -49,14 +49,21 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	float Health = 30.f;
 
-private:
-
 	UPROPERTY(EditDefaultsOnly)
 	UPaperFlipbook* HitEffect = nullptr;
 
+
+	// ====== TIMERS ========
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	FTimerHandle DamageEffectTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	FTimerHandle HitTimerHandle;
+
+
 public:
 	UFUNCTION(BlueprintCallable)
-	void DoAction(FString str);
+	void DoAction();
 
 	UFUNCTION(BlueprintCallable)
 	void AttackBegin();
@@ -89,11 +96,14 @@ public:
 		int32 OtherBodyIndex);
 
 	UFUNCTION()
-	void GetHit(AActor* OtherActor, float ReceivedDamage);
+	void GetHit(APaperHero* Hero, float ReceivedDamage);
 
 	UFUNCTION()
 	void Die();
 
 	UFUNCTION(BlueprintCallable)
-	UPaperFlipbook* GetHitEffect();
+	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
+
+	UFUNCTION()
+	void PlayDamageEffectEnd();
 };

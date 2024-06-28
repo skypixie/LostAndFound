@@ -71,7 +71,7 @@ void AEnemyGroup::BoxBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 		{
 			if (!Enemy->bIsBusy)
 			{
-				Enemy->DoAction("Box notify");
+				Enemy->DoAction();
 			}
 		}
 		bFirstInteraction = false;

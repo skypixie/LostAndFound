@@ -8,6 +8,7 @@
 #include "InputActionValue.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -33,7 +34,6 @@ APaperHero::APaperHero()
 	AttackCollision->SetupAttachment(GetSprite());
 	
 	AttackCollision->OnComponentBeginOverlap.AddDynamic(this, &APaperHero::OnAttackCollisionOverlap);
-	//AttackCollision->OnComponentHit.AddDynamic(this, &APaperHero::OnAttackCollisionHit);
 }
 
 void APaperHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -123,7 +123,6 @@ void APaperHero::HitTick(float DeltaTime)
 	}
 }
 
-// isn't used for now cuz OnHit fits better
 void APaperHero::OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,
@@ -140,24 +139,11 @@ void APaperHero::OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedCompone
 	}
 }
 
-void APaperHero::OnAttackCollisionHit(UPrimitiveComponent* HitComp,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	FVector NormalImpulse,
-	const FHitResult& Hit)
-{
-	APaperEnemy* Enemy = Cast<APaperEnemy>(OtherActor);
-	if (IsValid(Enemy) && (OtherActor->GetRootComponent() == OtherComp))
-	{
-		Enemy->GetHit(this, Damage);
-	}
-}
-
 void APaperHero::Interact(const FInputActionValue& Value)
 {
 }
 
-void APaperHero::GetHit(AActor* OtherActor, float ReceivedDamage)
+void APaperHero::GetHit(APaperEnemy* Enemy, float ReceivedDamage)
 {
 	if (Health - ReceivedDamage <= 0)
 	{
@@ -166,12 +152,7 @@ void APaperHero::GetHit(AActor* OtherActor, float ReceivedDamage)
 	else
 	{
 		Health -= ReceivedDamage;
-
-		APaperEnemy* Enemy = Cast<APaperEnemy>(OtherActor);
-		if (Enemy)
-		{
-			PlayDamageEffect(Enemy->GetHitEffect());
-		}
+		PlayDamageEffect(Enemy->HitEffect);
 		//FVector ImpulseDirection = GetActorLocation() - OtherActor->GetActorLocation();
 		// 
 		// too laggy
@@ -185,12 +166,30 @@ void APaperHero::GetHit(AActor* OtherActor, float ReceivedDamage)
 	}
 }
 
+// TODO
 void APaperHero::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 {
+	float AnimLengthSeconds = NewDamageFB->GetNumFrames() / NewDamageFB->GetFramesPerSecond();
+	GetWorld()->GetTimerManager().SetTimer(DamageEffectTimer, this,
+		&APaperHero::PlayDamageEffectEnd, AnimLengthSeconds, false);
+
 	DamageFB->SetFlipbook(NewDamageFB);
+	DamageFB->SetVisibility(true);
 	DamageFB->PlayFromStart();
+}
+
+void APaperHero::PlayDamageEffectEnd()
+{
+	GetWorld()->GetTimerManager().ClearTimer(DamageEffectTimer);
+	if (IsValid(DamageFB))
+	{
+		DamageFB->Stop();
+		DamageFB->SetVisibility(false);
+	}
 }
 
 void APaperHero::Die()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "DEAD");
 }
+	

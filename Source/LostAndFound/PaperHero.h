@@ -63,14 +63,20 @@ public:
 	float HitTime = 0.4f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
-	float HitTimer = 0.0f;
-
-private:
-	UPROPERTY()
 	float Health = 100.f;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float Damage = 15.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	UPaperFlipbook* HitEffect = nullptr;
+
+
+	// ====== TIMERS ========
+	FTimerHandle DamageEffectTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	float HitTimer = 0.0f;
 
 public:
 	APaperHero();
@@ -101,20 +107,16 @@ public:
 		const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnAttackCollisionHit(UPrimitiveComponent* HitComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		FVector NormalImpulse,
-		const FHitResult& Hit);
-
-	UFUNCTION()
 	void Interact(const FInputActionValue& Value);
 
 	UFUNCTION(BlueprintCallable)
-	void GetHit(AActor* OtherActor, float ReceivedDamage);
+	void GetHit(APaperEnemy* Enemy, float ReceivedDamage);
 
 	UFUNCTION(BlueprintCallable)
 	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
+
+	UFUNCTION()
+	void PlayDamageEffectEnd();
 
 	UFUNCTION(BlueprintCallable)
 	void Die();
