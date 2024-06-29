@@ -119,6 +119,7 @@ void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 {
 	if (Health - ReceivedDamage <= 0.f)
 	{
+		PlayDamageEffect(Hero->HitEffect);
 		Die();
 	}
 	else
@@ -135,21 +136,6 @@ void APaperEnemy::Die()
 
 void APaperEnemy::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 {
-	float AnimLengthSeconds = NewDamageFB->GetNumFrames() / NewDamageFB->GetFramesPerSecond();
-	GetWorld()->GetTimerManager().SetTimer(DamageEffectTimer, this,
-		&APaperEnemy::PlayDamageEffectEnd, AnimLengthSeconds, false);
-	
-	DamageFB->SetVisibility(true);
 	DamageFB->SetFlipbook(NewDamageFB);
 	DamageFB->PlayFromStart();
-}
-
-void APaperEnemy::PlayDamageEffectEnd()
-{
-	GetWorld()->GetTimerManager().ClearTimer(DamageEffectTimer);
-	if (IsValid(DamageFB))
-	{
-		DamageFB->Stop();
-		DamageFB->SetVisibility(false);
-	}
 }

@@ -166,30 +166,13 @@ void APaperHero::GetHit(APaperEnemy* Enemy, float ReceivedDamage)
 	}
 }
 
-// TODO
 void APaperHero::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 {
-	float AnimLengthSeconds = NewDamageFB->GetNumFrames() / NewDamageFB->GetFramesPerSecond();
-	GetWorld()->GetTimerManager().SetTimer(DamageEffectTimer, this,
-		&APaperHero::PlayDamageEffectEnd, AnimLengthSeconds, false);
-
 	DamageFB->SetFlipbook(NewDamageFB);
-	DamageFB->SetVisibility(true);
 	DamageFB->PlayFromStart();
-}
-
-void APaperHero::PlayDamageEffectEnd()
-{
-	GetWorld()->GetTimerManager().ClearTimer(DamageEffectTimer);
-	if (IsValid(DamageFB))
-	{
-		DamageFB->Stop();
-		DamageFB->SetVisibility(false);
-	}
 }
 
 void APaperHero::Die()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "DEAD");
 }
-	

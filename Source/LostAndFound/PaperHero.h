@@ -115,9 +115,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
 
-	UFUNCTION()
-	void PlayDamageEffectEnd();
-
 	UFUNCTION(BlueprintCallable)
 	void Die();
 	
