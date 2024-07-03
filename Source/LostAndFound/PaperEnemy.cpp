@@ -9,7 +9,6 @@
 
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
-#include "PaperZDAnimationComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
