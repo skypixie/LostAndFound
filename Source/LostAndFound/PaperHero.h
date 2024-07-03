@@ -73,7 +73,7 @@ public:
 
 
 	// ====== TIMERS ========
-	FTimerHandle DamageEffectTimer;
+	FTimerHandle DeathTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float HitTimer = 0.0f;

@@ -9,6 +9,7 @@
 class AEnemyGroup;
 class APaperHero;
 class UPaperFlipbook;
+class USphereComponent;
 
 /**
  * 
@@ -23,19 +24,31 @@ public:
 	APaperEnemy();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class USphereComponent* PlayerDetection = nullptr;
+	AEnemyGroup* OwningGroup = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USphereComponent* PlayerDetection = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
-	UPaperFlipbookComponent* DamageFB;
+	UPaperFlipbookComponent* DamageFB = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	bool bIsBusy = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	bool bIsPlayerNear = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	bool bIsHitting = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bIsDead = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bIsPlayingAnger = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	bool bIsPlayingQuestion = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	APaperHero* Player = nullptr;
@@ -54,14 +67,21 @@ public:
 
 
 	// ====== TIMERS ========
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
-	FTimerHandle DamageEffectTimer;
+	FTimerHandle DeathTimer;
+
+	FTimerHandle AngerTimer;
+	float AngerTime = 1.5f;
+
+	FTimerHandle QuestionTimer;
+	float QuestionTime = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	FTimerHandle HitTimerHandle;
+	float HitTime = 0.7f;
 
 
 public:
+
 	UFUNCTION(BlueprintCallable)
 	void DoAction();
 
@@ -76,13 +96,19 @@ public:
 	void ChasePawn_Implementation(APawn* Pawn);
 
 	UFUNCTION(BlueprintCallable)
-	void PlayAngerAnim();
+	void PlayAngerAnimBegin();
 
 	UFUNCTION(BlueprintCallable)
-	void PlayQuestionAnim();
+	void PlayAngerAnimEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void PlayQuestionAnimBegin();
+
+	UFUNCTION(BlueprintCallable)
+	void PlayQuestionAnimEnd();
 
 	UFUNCTION()
-	void SphereBeginOverlap(UPrimitiveComponent* OverlappedComponent,
+	void DetectionBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex,
@@ -90,13 +116,16 @@ public:
 		const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void SphereEndOverlap(class UPrimitiveComponent* OverlappedComp,
+	void DetectionEndOverlap(class UPrimitiveComponent* OverlappedComp,
 		class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
 	UFUNCTION()
 	void GetHit(APaperHero* Hero, float ReceivedDamage);
+
+	UFUNCTION()
+	void DisableAll();
 
 	UFUNCTION()
 	void Die();

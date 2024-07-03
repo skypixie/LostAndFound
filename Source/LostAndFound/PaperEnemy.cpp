@@ -9,7 +9,9 @@
 
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperZDAnimationComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -21,52 +23,46 @@ APaperEnemy::APaperEnemy()
 
 	PlayerDetection = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerDetection"));
 	PlayerDetection->SetupAttachment(RootComponent);
+	PlayerDetection->SetSphereRadius(200.f);
 	PlayerDetection->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PlayerDetection->SetCollisionResponseToAllChannels(ECR_Overlap);
-	PlayerDetection->SetSphereRadius(200.f);
-	PlayerDetection->OnComponentBeginOverlap.AddDynamic(this, &APaperEnemy::SphereBeginOverlap);
-	PlayerDetection->OnComponentEndOverlap.AddDynamic(this, &APaperEnemy::SphereEndOverlap);
+	PlayerDetection->OnComponentBeginOverlap.AddDynamic(this, &APaperEnemy::DetectionBeginOverlap);
+	PlayerDetection->OnComponentEndOverlap.AddDynamic(this, &APaperEnemy::DetectionEndOverlap);
 }
 
 void APaperEnemy::DoAction()
 {
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, str);
 
-	bIsBusy = true;
-	if (bIsPlayerNear)
+	if (!bIsDead && !bIsBusy)
 	{
-		if (UKismetMathLibrary::RandomBool())
-			AttackBegin();
+		if (bIsPlayerNear)
+		{
+			if (UKismetMathLibrary::RandomBool())
+				AttackBegin();
+			else
+				PlayAngerAnimBegin();
+		}
 		else
-			PlayAngerAnim();
-	}
-	else
-	{
-		if (UKismetMathLibrary::RandomBool())
-			ChasePawn(Player);
-		else
-			PlayQuestionAnim();
+		{
+			if (UKismetMathLibrary::RandomBool())
+				ChasePawn(Player);
+			else
+				PlayQuestionAnimBegin();
+		}
 	}
 }
 
 void APaperEnemy::AttackBegin()
 {
-	if (bIsHitting) return;
+	if (bIsHitting || bIsBusy) return;
 
 	bIsHitting = true;
-	FLinearColor AttackColor = {255, 0, 0, 0.5};
-	GetSprite()->SetSpriteColor(AttackColor);
+	bIsBusy = true;
 
-	GetWorld()->GetTimerManager().SetTimer(HitTimerHandle, this, &APaperEnemy::AttackEnd, 0.5f, false);
+	GetWorld()->GetTimerManager().SetTimer(HitTimerHandle, this, &APaperEnemy::AttackEnd, HitTime, false);
 
 	Player->GetHit(this, Damage);
-
-	/*
-	[+] проиграть анимацию на враге
-	[+] проиграть эффект атаки на игроке
-	[+] получение урона игроком
-	*/
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Start Hit");
 }
 
 void APaperEnemy::AttackEnd()
@@ -74,42 +70,69 @@ void APaperEnemy::AttackEnd()
 	bIsHitting = false;
 	bIsBusy = false;
 
-	FLinearColor NormalColor = { 1, 1, 1, 1 };
-	GetSprite()->SetSpriteColor(NormalColor);
-
 	GetWorld()->GetTimerManager().ClearTimer(HitTimerHandle);
 	DoAction();
-	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stop Hit");
 }
 
 void APaperEnemy::ChasePawn_Implementation(APawn* Pawn)
 {
+	bIsBusy = true;
 }
 
-void APaperEnemy::PlayAngerAnim()
+void APaperEnemy::PlayAngerAnimBegin()
 {
+	if (bIsBusy) return;
+
+	bIsPlayingAnger = true;
+	bIsBusy = true;
+	GetWorld()->GetTimerManager().SetTimer(AngerTimer, this, &APaperEnemy::PlayAngerAnimEnd, AngerTime, false);
+}
+
+void APaperEnemy::PlayAngerAnimEnd()
+{
+	bIsPlayingAnger = false;
 	bIsBusy = false;
+	GetWorld()->GetTimerManager().ClearTimer(AngerTimer);
+	
+	if (bIsPlayerNear) AttackBegin();
+	else DoAction();
 }
 
-void APaperEnemy::PlayQuestionAnim()
+void APaperEnemy::PlayQuestionAnimBegin()
 {
+	if (bIsBusy) return;
+
+	bIsPlayingQuestion = true;
+	bIsBusy = true;
+	GetWorld()->GetTimerManager().SetTimer(QuestionTimer, this, &APaperEnemy::PlayQuestionAnimEnd, QuestionTime, false);
+}
+
+void APaperEnemy::PlayQuestionAnimEnd()
+{
+	bIsPlayingQuestion = false;
 	bIsBusy = false;
+	GetWorld()->GetTimerManager().ClearTimer(QuestionTimer);
+	
+	if (bIsPlayerNear) AttackBegin();
+	else DoAction();
 }
 
-void APaperEnemy::SphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!bIsBusy && OtherActor == Player)
-	{
-		bIsPlayerNear = true;
-		DoAction();
-	}
-}
-
-void APaperEnemy::SphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void APaperEnemy::DetectionBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor == Player)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("%p %p"), OtherActor, Player);
+		bIsPlayerNear = true;
+		if (!bIsBusy)
+		{
+			DoAction();
+		}
+	}
+}
+
+void APaperEnemy::DetectionEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor == Player)
+	{
 		bIsPlayerNear = false;
 		DoAction();
 	}
@@ -119,8 +142,17 @@ void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 {
 	if (Health - ReceivedDamage <= 0.f)
 	{
-		PlayDamageEffect(Hero->HitEffect);
-		Die();
+		DisableAll();
+
+		// float TimeToDeath = Hero->HitEffect->GetNumFrames() / Hero->HitEffect->GetFramesPerSecond();
+		float TimeToDeath = 1.5f;
+		GetWorld()->GetTimerManager().SetTimer(
+			DeathTimer,
+			this,
+			&APaperEnemy::Die,
+			TimeToDeath,
+			false
+		);
 	}
 	else
 	{
@@ -129,8 +161,21 @@ void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 	}
 }
 
+void APaperEnemy::DisableAll()
+{
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	// prevents pawn from moving
+	MovementPtr->MaxWalkSpeed = 0.0f;
+	PlayerDetection->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	bIsBusy = false;
+	bIsHitting = false;
+	bIsPlayerNear = false;
+	bIsDead = true;
+}
+
 void APaperEnemy::Die()
 {
+	OwningGroup->EnemyDestroyed(this);
 	Destroy();
 }
 

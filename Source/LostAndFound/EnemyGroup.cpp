@@ -41,7 +41,6 @@ void AEnemyGroup::SpawnEnemies(int32 NumEnemies)
 	for (int i = 0; i < NumEnemies; ++i)
 	{
 		FVector SpawnLocation = FMath::RandPointInBox(SpawnBox->GetNavigationBounds());
-		SpawnLocation.Z = 0.0f;
 		FRotator SpawnRotation = FRotator(0, 0, 0);
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -50,6 +49,7 @@ void AEnemyGroup::SpawnEnemies(int32 NumEnemies)
 		if (SpawnedEnemy)
 		{
 			SpawnedEnemy->Player = Player;
+			SpawnedEnemy->OwningGroup = this;
 			Enemies.Add(SpawnedEnemy);
 		}
 	}
@@ -75,5 +75,16 @@ void AEnemyGroup::BoxBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 			}
 		}
 		bFirstInteraction = false;
+	}
+}
+
+void AEnemyGroup::EnemyDestroyed(APaperEnemy* EnemyToDelete)
+{
+	--CurNumEnemies;
+	Enemies.Remove(EnemyToDelete);
+	
+	if (CurNumEnemies == 0)
+	{
+		OnGroupCleared.Broadcast(this);
 	}
 }
