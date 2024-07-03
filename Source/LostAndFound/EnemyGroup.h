@@ -11,6 +11,9 @@ class UBoxComponent;
 class APaperEnemy;
 class APaperHero;
 
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGroupCleared, AEnemyGroup*, Group);
+
 UCLASS()
 class LOSTANDFOUND_API AEnemyGroup : public AActor
 {
@@ -19,6 +22,9 @@ class LOSTANDFOUND_API AEnemyGroup : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AEnemyGroup();
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGroupCleared OnGroupCleared;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* SpawnBox;
@@ -59,5 +65,8 @@ public:
 		int32 OtherBodyIndex,
 		bool bFromSweep,
 		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void EnemyDestroyed(APaperEnemy* EnemyToDelete);
 
 };
