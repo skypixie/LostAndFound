@@ -57,7 +57,7 @@ public:
 	class UCharacterMovementComponent* MovementPtr = GetCharacterMovement();
 
 	UPROPERTY(EditDefaultsOnly)
-	float Damage = 15.f;
+	int Damage = 15.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	float Health = 30.f;
@@ -70,10 +70,10 @@ public:
 	FTimerHandle DeathTimer;
 
 	FTimerHandle AngerTimer;
-	float AngerTime = 1.5f;
+	float AngerTime = 0.5f;
 
 	FTimerHandle QuestionTimer;
-	float QuestionTime = 1.5f;
+	float QuestionTime = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	FTimerHandle HitTimerHandle;
@@ -90,6 +90,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void CancelAttack();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void ChasePawn(APawn* Pawn);
@@ -132,4 +135,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayDeadSound();
+	void PlayDeadSound_Implementation();
 };

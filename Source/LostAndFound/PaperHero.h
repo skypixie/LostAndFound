@@ -12,6 +12,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UPaperFlipbookComponent;
 class UBoxComponent;
+class UDialogueWave;
 
 /**
  * 
@@ -42,16 +43,19 @@ public:
 	UInputAction* MoveAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
-	UInputAction* DodgeAction;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
 	UInputAction* HitAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
-	UInputAction* InteractAction;
+	UInputAction* BlockAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float WalkSpeed = 600.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float SpeedCoef = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float BlockWalkSpeed = 400.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	FVector Direction = FVector(0.f, 0.f, 0.f);
@@ -60,10 +64,22 @@ public:
 	bool bIsHitting = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	bool bIsBlocking = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	bool bCanBlock = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	bool bIsDead = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float HitTime = 0.4f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
-	float Health = 100.f;
+	float BlockTime = 5.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	int Health = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float Damage = 15.f;
@@ -71,12 +87,33 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	UPaperFlipbook* HitEffect = nullptr;
 
+	UPROPERTY(EditDefaultsOnly)
+	UPaperFlipbook* BlockEffect = nullptr;
+
+	UPROPERTY(EditDefaultsOnly)
+	UDialogueWave* HitSound;
+
+	UPROPERTY(EditDefaultsOnly)
+	UDialogueWave* ShieldSound;
+
+	UPROPERTY(EditDefaultsOnly)
+	UDialogueWave* DamageSound;
+
 
 	// ====== TIMERS ========
 	FTimerHandle DeathTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
 	float HitTimer = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	float BlockTimer = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	float BlockCooldown = BlockTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle")
+	float BlockSeconds = BlockTime;
 
 public:
 	APaperHero();
@@ -90,13 +127,19 @@ public:
 	void Move(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void Dodge(const FInputActionValue& Value);
-
-	UFUNCTION()
 	void Hit(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void HitTick(float DeltaTime);
+
+	UFUNCTION()
+	void Block(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void BlockReleased(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void BlockTick(float DeltaTime);
 
 	UFUNCTION()
 	void OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -106,16 +149,42 @@ public:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 
-	UFUNCTION()
-	void Interact(const FInputActionValue& Value);
-
 	UFUNCTION(BlueprintCallable)
-	void GetHit(APaperEnemy* Enemy, float ReceivedDamage);
+	void GetHit(APaperEnemy* Enemy, int ReceivedDamage);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void UpdateHealthBar();
+	void UpdateHealthBar_Implementation();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void UpdateShieldBar();
+	void UpdateShieldBar_Implementation();
 
 	UFUNCTION(BlueprintCallable)
 	void PlayDamageEffect(UPaperFlipbook* NewDamageFB);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void Die();
-	
+	void Die_Implementation();
+
+	// ============ SOUND NATIVE EVENTS ==============
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayHitSound();
+	void PlayHitSound_Implementation();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayShieldSound();
+	void PlayShieldSound_Implementation();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayDamageSound();
+	void PlayDamageSound_Implementation();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayGameOverSound();
+	void PlayGameOverSound_Implementation();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void SetAvatarDead();
+	void SetAvatarDead_Implementation();
 };

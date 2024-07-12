@@ -31,8 +31,6 @@ APaperEnemy::APaperEnemy()
 
 void APaperEnemy::DoAction()
 {
-	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, str);
-
 	if (!bIsDead && !bIsBusy)
 	{
 		if (bIsPlayerNear)
@@ -60,17 +58,25 @@ void APaperEnemy::AttackBegin()
 	bIsBusy = true;
 
 	GetWorld()->GetTimerManager().SetTimer(HitTimerHandle, this, &APaperEnemy::AttackEnd, HitTime, false);
-
-	Player->GetHit(this, Damage);
 }
 
 void APaperEnemy::AttackEnd()
 {
+	Player->GetHit(this, Damage);
+
 	bIsHitting = false;
 	bIsBusy = false;
 
 	GetWorld()->GetTimerManager().ClearTimer(HitTimerHandle);
 	DoAction();
+}
+
+void APaperEnemy::CancelAttack()
+{
+	bIsHitting = false;
+	bIsBusy = false;
+
+	GetWorld()->GetTimerManager().ClearTimer(HitTimerHandle);
 }
 
 void APaperEnemy::ChasePawn_Implementation(APawn* Pawn)
@@ -93,8 +99,8 @@ void APaperEnemy::PlayAngerAnimEnd()
 	bIsBusy = false;
 	GetWorld()->GetTimerManager().ClearTimer(AngerTimer);
 	
-	if (bIsPlayerNear) AttackBegin();
-	else DoAction();
+	//if (bIsPlayerNear) AttackBegin();
+	DoAction();
 }
 
 void APaperEnemy::PlayQuestionAnimBegin()
@@ -121,10 +127,7 @@ void APaperEnemy::DetectionBeginOverlap(UPrimitiveComponent* OverlappedComponent
 	if (OtherActor == Player)
 	{
 		bIsPlayerNear = true;
-		if (!bIsBusy)
-		{
-			DoAction();
-		}
+		DoAction();
 	}
 }
 
@@ -133,13 +136,15 @@ void APaperEnemy::DetectionEndOverlap(UPrimitiveComponent* OverlappedComp, AActo
 	if (OtherActor == Player)
 	{
 		bIsPlayerNear = false;
-		DoAction();
+		CancelAttack();
 	}
 }
 
 void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 {
-	if (Health - ReceivedDamage <= 0.f)
+	Health -= ReceivedDamage;
+
+	if (Health <= 0.f && !bIsDead)
 	{
 		DisableAll();
 
@@ -152,11 +157,12 @@ void APaperEnemy::GetHit(APaperHero* Hero, float ReceivedDamage)
 			TimeToDeath,
 			false
 		);
+		PlayDeadSound();
 	}
 	else
 	{
-		Health -= ReceivedDamage;
 		PlayDamageEffect(Hero->HitEffect);
+		CancelAttack();
 	}
 }
 
@@ -182,4 +188,8 @@ void APaperEnemy::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 {
 	DamageFB->SetFlipbook(NewDamageFB);
 	DamageFB->PlayFromStart();
+}
+
+void APaperEnemy::PlayDeadSound_Implementation()
+{
 }

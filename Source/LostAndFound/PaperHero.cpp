@@ -12,8 +12,13 @@
 #include "PaperFlipbookComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "Engine/DamageEvents.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/DialogueTypes.h"
 
 
 APaperHero::APaperHero()
@@ -34,6 +39,8 @@ APaperHero::APaperHero()
 	AttackCollision->SetupAttachment(GetSprite());
 	
 	AttackCollision->OnComponentBeginOverlap.AddDynamic(this, &APaperHero::OnAttackCollisionOverlap);
+
+	WalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 }
 
 void APaperHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -51,16 +58,20 @@ void APaperHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 	Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APaperHero::Move);
 	Input->BindAction(HitAction, ETriggerEvent::Triggered, this, &APaperHero::Hit);
+	Input->BindAction(BlockAction, ETriggerEvent::Triggered, this, &APaperHero::Block);
+	Input->BindAction(BlockAction, ETriggerEvent::Completed, this, &APaperHero::BlockReleased);
 }
 
 void APaperHero::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	HitTick(DeltaTime);
+	BlockTick(DeltaTime);
 }
 
 void APaperHero::Move(const FInputActionValue& Value)
 {
+	if (bIsHitting || bIsDead) return;
 	Direction = Value.Get<FVector>();
 	Direction.Normalize();
 	
@@ -69,10 +80,6 @@ void APaperHero::Move(const FInputActionValue& Value)
 	AddMovementInput(Direction, SpeedCoef, true);
 
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("%f %f %f"), Direction.X, Direction.Y, Direction.Z));
-}
-
-void APaperHero::Dodge(const FInputActionValue& Value)
-{
 }
 
 void APaperHero::Hit(const FInputActionValue& Value)
@@ -110,6 +117,8 @@ void APaperHero::HitTick(float DeltaTime)
 {
 	if (bIsHitting)
 	{
+		if (HitTimer >= 0.1f && HitTimer <= 0.11) PlayHitSound();
+
 		if (HitTimer >= HitTime)
 		{
 			bIsHitting = false;
@@ -121,6 +130,63 @@ void APaperHero::HitTick(float DeltaTime)
 			HitTimer += DeltaTime;
 		}
 	}
+}
+
+void APaperHero::Block(const FInputActionValue& Value)
+{
+	if (!bCanBlock) return;
+
+	bIsBlocking = true;
+	GetCharacterMovement()->MaxWalkSpeed = BlockWalkSpeed;
+
+	DamageFB->SetFlipbook(BlockEffect);
+	DamageFB->SetLooping(true);
+	DamageFB->Play();
+}
+
+void APaperHero::BlockReleased(const FInputActionValue& Value)
+{
+	bIsBlocking = false;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	DamageFB->SetFlipbook(nullptr);
+	DamageFB->SetLooping(false);
+}
+
+void APaperHero::BlockTick(float DeltaTime)
+{
+	UpdateShieldBar();
+
+	if (bIsBlocking)
+	{
+		if (BlockTimer >= 0.1 && BlockTimer <= 0.11) PlayShieldSound();
+		if (BlockTimer >= BlockTime)
+		{
+			bIsBlocking = false;
+			bCanBlock = false;
+			DamageFB->SetFlipbook(nullptr);
+			DamageFB->SetLooping(false);
+		}
+		else
+		{
+			BlockTimer += DeltaTime;
+		}
+		BlockCooldown -= DeltaTime;
+		BlockSeconds -= DeltaTime;
+
+		return;
+	}
+	// cooldown
+	if (BlockCooldown < BlockTime)
+	{
+		BlockCooldown += DeltaTime;
+	}
+	else if (BlockCooldown >= BlockTime)
+	{
+		bCanBlock = true;
+		//BlockCooldown = 0.0f;
+		BlockTimer = 0.0f;
+	}
+	BlockSeconds = BlockCooldown;
 }
 
 void APaperHero::OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedComponent,
@@ -137,33 +203,50 @@ void APaperHero::OnAttackCollisionOverlap(UPrimitiveComponent* OverlappedCompone
 	{
 		Enemy->GetHit(this, Damage);
 	}
+	// just take damage cuz its a boss ye ik im stupid
+	else if (OtherActor->GetRootComponent() == OtherComp)
+	{
+		FDamageEvent DamageEvent;
+		OtherActor->TakeDamage(Damage, DamageEvent, GetController(), this);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Boss Damage");
+	}
 }
 
-void APaperHero::Interact(const FInputActionValue& Value)
+void APaperHero::GetHit(APaperEnemy* Enemy, int ReceivedDamage)
 {
-}
 
-void APaperHero::GetHit(APaperEnemy* Enemy, float ReceivedDamage)
-{
+	if (bIsBlocking) return;
 	if (Health - ReceivedDamage <= 0)
 	{
+		Health = 0;
+		UpdateHealthBar();
 		Die();
 	}
 	else
 	{
 		Health -= ReceivedDamage;
+		UpdateHealthBar();
 		PlayDamageEffect(Enemy->HitEffect);
+		PlayDamageSound();
 		//FVector ImpulseDirection = GetActorLocation() - OtherActor->GetActorLocation();
-		// 
+		
 		// too laggy
 		//AddActorWorldOffset(ImpulseDirection, false);
-		// 
+		
 		// doesnt work even if SimulatePhysics enabled
 		//GetSprite()->AddImpulse(ImpulseDirection * 5, NAME_None, false);
-		// 
+		
 		// Looks bad
 		//LaunchCharacter(ImpulseDirection * 10, false, false);
 	}
+}
+
+void APaperHero::UpdateHealthBar_Implementation()
+{
+}
+
+void APaperHero::UpdateShieldBar_Implementation()
+{
 }
 
 void APaperHero::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
@@ -172,7 +255,32 @@ void APaperHero::PlayDamageEffect(UPaperFlipbook* NewDamageFB)
 	DamageFB->PlayFromStart();
 }
 
-void APaperHero::Die()
+void APaperHero::Die_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "DEAD");
+	if (bIsDead) return;
+
+	DamageFB->SetFlipbook(nullptr);
+	bIsDead = true;
+	PlayGameOverSound();
+	SetAvatarDead();
+}
+
+void APaperHero::PlayHitSound_Implementation()
+{
+}
+
+void APaperHero::PlayShieldSound_Implementation()
+{
+}
+
+void APaperHero::PlayDamageSound_Implementation()
+{
+}
+
+void APaperHero::PlayGameOverSound_Implementation()
+{
+}
+
+void APaperHero::SetAvatarDead_Implementation()
+{
 }
