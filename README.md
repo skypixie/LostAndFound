@@ -9,7 +9,7 @@ Most of the code is written in C++, so it was very fun!
 ## Plot
 A boy who loved reading comics was sent to an another world! 🌎
 
-It has monsters and the citizens are suffereing... 😢
+It has monsters and the citizens are suffering... 😢
 
 They ask the young hero for help and he decides to help them, of course. 😎
 
