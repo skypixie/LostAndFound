@@ -84,6 +84,8 @@ void APaperHero::Move(const FInputActionValue& Value)
 
 void APaperHero::Hit(const FInputActionValue& Value)
 {
+	if (bIsBlocking) return;
+
 	bIsHitting = true;
 
 	// change collision location
